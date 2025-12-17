@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import AdminPeriodControl from './AdminPeriodControl';
 
 interface DashboardProps {
   userRole: 'client' | 'admin';
+  clientId?: number;
+  clientId?: number;
 }
 
-export default function Dashboard({ userRole }: DashboardProps) {
+export default function Dashboard({ userRole, clientId }: DashboardProps) {
   const clientStats = [
     { label: 'Доступный бюджет', value: '₽ 150 000', icon: 'Wallet', color: 'text-green-600' },
     { label: 'Активные заявки', value: '3', icon: 'FileText', color: 'text-blue-600' },
@@ -53,6 +56,10 @@ export default function Dashboard({ userRole }: DashboardProps) {
           }
         </p>
       </div>
+
+      {userRole === 'admin' && clientId && (
+        <AdminPeriodControl adminId={clientId} />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (

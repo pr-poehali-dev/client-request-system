@@ -6,6 +6,8 @@ import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { getCurrentPeriod, QuarterlyPeriod } from '@/lib/api';
 
 interface CartItem {
   id: number;
@@ -36,10 +38,32 @@ export default function Cart({
   budgetLimit,
   budgetUsed,
 }: CartProps) {
+  const [currentPeriod, setCurrentPeriod] = useState<QuarterlyPeriod | null>(null);
+  const [isLoadingPeriod, setIsLoadingPeriod] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadPeriod();
+    }
+  }, [isOpen]);
+
+  const loadPeriod = async () => {
+    try {
+      setIsLoadingPeriod(true);
+      const period = await getCurrentPeriod();
+      setCurrentPeriod(period);
+    } catch (error: any) {
+      console.error('Error loading period:', error);
+    } finally {
+      setIsLoadingPeriod(false);
+    }
+  };
+
   const cartTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const budgetRemaining = budgetLimit - budgetUsed;
   const budgetAfterOrder = budgetRemaining - cartTotal;
   const isOverBudget = budgetAfterOrder < 0;
+  const isPeriodClosed = !currentPeriod || currentPeriod.status !== 'open';
 
   const handleSubmit = () => {
     if (items.length === 0) {
@@ -52,6 +76,13 @@ export default function Cart({
     if (isOverBudget) {
       toast.error('Превышен бюджет', {
         description: 'Уменьшите количество товаров или удалите некоторые позиции',
+      });
+      return;
+    }
+
+    if (isPeriodClosed) {
+      toast.error('Приём заявок закрыт', {
+        description: 'Дождитесь начала следующего квартального периода',
       });
       return;
     }
@@ -187,13 +218,27 @@ export default function Cart({
             </CardContent>
           </Card>
 
+          {isPeriodClosed && (
+            <Card className="border-yellow-500 bg-yellow-50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 text-yellow-800">
+                  <Icon name="AlertCircle" size={20} />
+                  <div>
+                    <p className="font-semibold">Приём заявок закрыт</p>
+                    <p className="text-sm">Дождитесь начала следующего квартального периода</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Button
             onClick={handleSubmit}
-            disabled={items.length === 0 || isOverBudget}
+            disabled={items.length === 0 || isOverBudget || isPeriodClosed || isLoadingPeriod}
             className="w-full h-12 text-lg gap-2"
           >
             <Icon name="Send" size={20} />
-            Отправить заявку
+            {isLoadingPeriod ? 'Проверка...' : 'Отправить заявку'}
           </Button>
         </div>
       </SheetContent>

@@ -49,7 +49,27 @@ export interface Order {
   address: string;
   total: number;
   status: 'pending' | 'approved' | 'rejected';
+  is_locked: boolean;
+  approved_at?: string;
+  approved_by?: number;
+  period_id?: number;
+  year?: number;
+  quarter?: number;
+  period_status?: 'upcoming' | 'open' | 'closed';
   items: OrderItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuarterlyPeriod {
+  id: number;
+  year: number;
+  quarter: number;
+  collection_start_date: string;
+  collection_end_date?: string;
+  quarter_start_date: string;
+  quarter_end_date: string;
+  status: 'upcoming' | 'open' | 'closed';
   created_at: string;
   updated_at: string;
 }
@@ -70,7 +90,8 @@ async function apiCall(action: string, method: string = 'GET', body?: any) {
 
   const response = await fetch(url, options);
   if (!response.ok) {
-    throw new Error(`API error: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(errorData.error || `API error: ${response.statusText}`);
   }
 
   return response.json();
@@ -88,6 +109,10 @@ export async function getCategories(): Promise<Category[]> {
   return apiCall('categories');
 }
 
+export async function getCurrentPeriod(): Promise<QuarterlyPeriod | null> {
+  return apiCall('current_period');
+}
+
 export async function getOrders(clientId?: number): Promise<Order[]> {
   const action = clientId ? `orders&client_id=${clientId}` : 'orders';
   return apiCall(action);
@@ -97,6 +122,10 @@ export async function createOrder(clientId: number, items: { product_id: number;
   return apiCall('create_order', 'POST', { client_id: clientId, items });
 }
 
-export async function updateOrderStatus(orderId: number, status: 'pending' | 'approved' | 'rejected'): Promise<{ status: string }> {
-  return apiCall(`update_order&order_id=${orderId}`, 'PUT', { status });
+export async function updateOrderStatus(orderId: number, status: 'pending' | 'approved' | 'rejected', adminId?: number): Promise<{ status: string }> {
+  return apiCall(`update_order&order_id=${orderId}`, 'PUT', { status, admin_id: adminId });
+}
+
+export async function closePeriod(adminId: number): Promise<{ message: string; period_id: number }> {
+  return apiCall('close_period', 'POST', { admin_id: adminId });
 }

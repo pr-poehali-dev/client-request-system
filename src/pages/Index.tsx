@@ -78,7 +78,7 @@ export default function Index() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard userRole={userRole!} />;
+        return <Dashboard userRole={userRole!} clientId={currentClient?.id} />;
       case 'catalog':
         return <Catalog userRole={userRole!} onAddToCart={handleAddToCart} />;
       case 'orders':
